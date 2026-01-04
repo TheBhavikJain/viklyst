@@ -1,0 +1,26 @@
+# IntelliJ
+.idea/
+*.iml
+out/
+
+# Gradle / Kotlin / Spring
+.gradle/
+build/
+**/build/
+
+# Logs
+*.log
+
+# Env / secrets
+.env
+application-local.yml
+application-local.yaml
+
+# Node / Vite
+node_modules/
+dist/
+.vite/
+
+# OS
+.DS_Store
+Thumbs.db

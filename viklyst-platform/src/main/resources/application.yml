@@ -1,0 +1,9 @@
+alphavantage:
+  base-url: https://www.alphavantage.co
+  api-key: ITDK5017PQDGJJYB
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,mappings

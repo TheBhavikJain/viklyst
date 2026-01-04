@@ -1,0 +1,19 @@
+services:
+  db:
+    image: timescale/timescaledb:latest-pg17
+    environment:
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_USER: postgres
+      POSTGRES_DB: viklyst
+    ports:
+      - "5432:5432"
+    volumes:
+      - viklyst_db:/var/lib/postgresql/data
+
+  redis:
+    image: redis:7
+    ports:
+      - "6379:6379"
+
+volumes:
+  viklyst_db:
