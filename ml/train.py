@@ -164,7 +164,7 @@ def main():
         "symbol": args.symbol.upper(),
         "from": args.from_date,
         "to": args.to_date,
-        "feature_cols": feature_cols,
+        "feature_columns": feature_cols,
         "cv_accuracy_mean": result["cv_accuracy_mean"],
         "cv_accuracy_std": result["cv_accuracy_std"],
         "notes": "Predicts whether tomorrow close > today close using engineered OHLCV features. Trained via time-series CV.",

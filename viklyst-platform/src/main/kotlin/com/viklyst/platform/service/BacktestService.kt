@@ -20,34 +20,44 @@ class BacktestService(
 
     fun buyAndHold(symbol: String, from: LocalDate, to: LocalDate): BacktestResult {
         val candles = loadCandles(symbol, from, to)
-        val (equity, trades) = BacktestEngine.buyAndHold(candles)
 
-        return BacktestResult(
+        val initialCapital = 10_000.0
+        val curve = BacktestEngine.buyAndHoldCurve(candles) // multipliers as EquityPoint(day, equity)
+        val endingMultiplier = curve.last().equity
+
+        return BacktestResult.fromMultipliers(
             symbol = symbol.uppercase(),
             from = from,
             to = to,
             strategy = "BUY_AND_HOLD",
-            trades = trades,
+            trades = 1,
             winRate = 0.0,
-            totalReturnPct = round2(BacktestEngine.totalReturnPct(equity)),
-            maxDrawdownPct = round2(BacktestEngine.maxDrawdownPct(equity)),
-            points = equity.size
+            totalReturnPct = round2(BacktestEngine.totalReturnPct(curve.map { it.equity })),
+            maxDrawdownPct = round2(BacktestEngine.maxDrawdownPct(curve.map { it.equity })),
+            points = curve.size,
+            initialCapital = initialCapital,
+            endingMultiplier = endingMultiplier,
+            exposurePct = 100.0
         )
     }
+
 
     fun nextDayMomentum(symbol: String, from: LocalDate, to: LocalDate, lookback: Int): BacktestResult {
         val candles = loadCandles(symbol, from, to)
         val (equity, stats) = BacktestEngine.nextDayMomentum(candles, lookback)
+        if (equity.isEmpty()) throw IllegalArgumentException("Not enough data for momentum backtest")
 
         val initialCapital = 10_000.0
-        val endingEquity = round2(initialCapital * (equity.lastOrNull() ?: 1.0))
+        val endingMultiplier = equity.last()
 
-        // approx: percent of days where we took a trade
-        val exposurePct =
-            if (equity.size <= 1) 0.0
-            else round2((stats.trades.toDouble() / (equity.size - 1).toDouble()) * 100.0)
+        // exposure: percent of decision days where we took a trade
+        // In your engine loop: i runs from lookback .. size-2 (each i decides i+1)
+        // number of possible trade days = (candles.size - 1) - lookback
+        val possibleTradeDays = (candles.size - 1) - lookback
+        val exposurePct = if (possibleTradeDays <= 0) 0.0
+        else round2((stats.trades.toDouble() / possibleTradeDays.toDouble()) * 100.0)
 
-        return BacktestResult(
+        return BacktestResult.fromMultipliers(
             symbol = symbol.uppercase(),
             from = from,
             to = to,
@@ -58,10 +68,11 @@ class BacktestService(
             maxDrawdownPct = round2(BacktestEngine.maxDrawdownPct(equity)),
             points = equity.size,
             initialCapital = initialCapital,
-            endingEquity = endingEquity,
+            endingMultiplier = endingMultiplier,
             exposurePct = exposurePct
         )
     }
+
 
 
     // Optional helper so old UI calls still work:
@@ -86,11 +97,19 @@ class BacktestService(
         val curveUsd = toUsdCurve(strategyMult, initialCapital)
         val benchUsd = toUsdCurve(benchmarkMult, initialCapital)
 
+        // simple exposure: percent of days where equity changed (means we took a trade that day)
+        // (better: return exposure from engine, but this is fine for now)
+        val changedDays = curveUsd.zipWithNext().count { (a, b) -> b.equity != a.equity }
+        val exposurePct = if (curveUsd.size <= 1) 0.0 else (changedDays.toDouble() / (curveUsd.size - 1).toDouble()) * 100.0
+
+
         // drawdown series (in %)
         val drawdown = computeDrawdown(curveUsd)
         val benchDrawdown = computeDrawdown(benchUsd)
 
-        val summary = BacktestResult(
+        val endingMultiplier = strategyMult.last().equity
+
+        val summary = BacktestResult.fromMultipliers(
             symbol = symbol.uppercase(),
             from = from,
             to = to,
@@ -99,8 +118,12 @@ class BacktestService(
             winRate = round2(BacktestEngine.winRate(stats)),
             totalReturnPct = round2(BacktestEngine.totalReturnPct(strategyMult.map { it.equity })),
             maxDrawdownPct = round2(BacktestEngine.maxDrawdownPct(strategyMult.map { it.equity })),
-            points = curveUsd.size
+            points = curveUsd.size,
+            initialCapital = initialCapital,
+            endingMultiplier = endingMultiplier,
+            exposurePct = round2(exposurePct) // whatever you computed
         )
+
 
         return BacktestCurveResponse(
             summary = summary,

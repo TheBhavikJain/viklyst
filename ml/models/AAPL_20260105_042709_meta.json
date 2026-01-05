@@ -1,0 +1,16 @@
+{
+  "symbol": "AAPL",
+  "from": "2025-10-01",
+  "to": "2026-01-03",
+  "feature_columns": [
+    "ret_1d",
+    "close_over_ma5",
+    "close_over_ma10",
+    "vol_5",
+    "vol_10",
+    "volchg_1d"
+  ],
+  "cv_accuracy_mean": 0.48888888888888893,
+  "cv_accuracy_std": 0.0888888888888889,
+  "notes": "Predicts whether tomorrow close > today close using engineered OHLCV features. Trained via time-series CV."
+}
