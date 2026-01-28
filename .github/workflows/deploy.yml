@@ -2,7 +2,7 @@ name: Deploy Vite to GitHub Pages
 
 on:
   push:
-    branches: [ "main" ]
+    branches: ["main"]
   workflow_dispatch:
 
 permissions:
@@ -17,6 +17,7 @@ concurrency:
 jobs:
   build:
     runs-on: ubuntu-latest
+
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -26,17 +27,20 @@ jobs:
         with:
           node-version: 20
           cache: npm
+          cache-dependency-path: viklyst-ui/package-lock.json
 
       - name: Install
+        working-directory: viklyst-ui
         run: npm ci
 
       - name: Build
+        working-directory: viklyst-ui
         run: npm run build
 
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
         with:
-          path: dist
+          path: viklyst-ui/dist
 
   deploy:
     needs: build
@@ -44,6 +48,7 @@ jobs:
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
+
     steps:
       - name: Deploy
         id: deployment
